@@ -10,8 +10,15 @@ def main():
     name = args.name
     job = args.job
     print("Hello， 大家好，我是{}{}!".format(job, name))
+    model_type='hioljFC'
+
+    if model_type[-2:] == 'FC':
+        print('sucess')
+    else:
+        print('fall')
 
 
 if __name__ == '__main__':
     main()
     # p
+

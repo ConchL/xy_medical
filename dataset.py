@@ -95,6 +95,10 @@ class MedicalData(Dataset):
             data["day4"] = []
             data['common'] = []
             # data["day5"] = []
+            data["day1constant"] = []
+            data["day2constant"] = []
+            data["day3constant"] = []
+            data["day4constant"] = []
 
             label = {}
 
@@ -111,20 +115,58 @@ class MedicalData(Dataset):
                     label["liver_injury"] = self._format_label(row[col])
                 elif col == "dic_Day5":
                     label["dic"] = self._format_label(row[col])
+                elif col == "shock_Day2":
+                    label["shock2"] = self._format_label(row[col])
+                elif col == "shock_Day3":
+                    label["shock3"] = self._format_label(row[col])
+                elif col == "shock_Day4":
+                    label["shock4"] = self._format_label(row[col])
+                elif col == "ards_Day2":
+                    label["ards2"] = self._format_label(row[col])
+                elif col == "ards_Day3":
+                    label["ards3"] = self._format_label(row[col])
+                elif col == "ards_Day4":
+                    label["ards4"] = self._format_label(row[col])
+                elif col == "aki_stage_Day2":
+                    label["aki_stage2"] = self._format_label(row[col])
+                elif col == "aki_stage_Day3":
+                    label["aki_stage3"] = self._format_label(row[col])
+                elif col == "aki_stage_Day4":
+                    label["aki_stage4"] = self._format_label(row[col])
+                elif col == "liver_injury_Day2":
+                    label["liver_injury2"] = self._format_label(row[col])
+                elif col == "liver_injury_Day3":
+                    label["liver_injury3"] = self._format_label(row[col])
+                elif col == "liver_injury_Day4":
+                    label["liver_injury4"] = self._format_label(row[col])
+                elif col == "dic_Day2":
+                    label["dic2"] = self._format_label(row[col])
+                elif col == "dic_Day3":
+                    label["dic3"] = self._format_label(row[col])
+                elif col == "dic_Day4":
+                    label["dic4"] = self._format_label(row[col])
                 else:
                     if col != "icustay_id":
                         if "Day1" in col:
                             data["day1"].append(self._format_data(row[col]))
+                            data["day1constant"].append(self._format_data(row[col]))
                         if "Day2" in col:
                             data["day2"].append(self._format_data(row[col]))
+                            data["day2constant"].append(self._format_data(row[col]))
                         if "Day3" in col:
                             data["day3"].append(self._format_data(row[col]))
+                            data["day3constant"].append(self._format_data(row[col]))
                         if "Day4" in col:
                             data["day4"].append(self._format_data(row[col]))
+                            data["day4constant"].append(self._format_data(row[col]))
                         # if "Day5" in col:
                         #     data["day5"].append(self._format_data(row[col]))
                 if col in common_need:
                     data["common"].append(self._format_data(row[col]))
+                    data["day1constant"].append(self._format_data(row[col]))
+                    data["day2constant"].append(self._format_data(row[col]))
+                    data["day3constant"].append(self._format_data(row[col]))
+                    data["day4constant"].append(self._format_data(row[col]))
 
 
 
@@ -143,10 +185,11 @@ if __name__ == '__main__':
     # train_file = 'train.csv'  # 仅有5天时间变量，无常规变量的数据
     # valid_file = 'valid.csv'
     # test_file = 'test.csv'
-    train_file = 'train_add_normal_std_shock.csv'  # 有5天时间变量（90/day）和常规变量的数据
-    valid_file = 'valid_add_normal_std_shock.csv'
-    test_file = 'test_add_normal_std_shock.csv'
-    train = MedicalData(mode="train",train_file=train_file)
+    train_file = 'train_add_normal_std_aki_stage.csv'  # 有5天时间变量（90/day）和常规变量的数据
+    valid_file = 'valid_add_normal_std_aki_stage.csv'
+    test_file = 'test_add_normal_std_aki_stage.csv'
+    train = MedicalData(mode="train",train_file=train_file, label_name='aki_stage')
+
 
     print(len(train))
 
@@ -157,3 +200,24 @@ if __name__ == '__main__':
     for i in data["day1"]:
         print(type(i))
 
+    for i in data["day1"]:
+        print(i)
+
+    for i in data["day1constant"]:
+        print(type(i))
+
+    for i in data["day1constant"]:
+        print(i)
+
+    print(len(data["day1"]))
+    print(len(data["day2"]))
+    print(len(data["day3"]))
+    print(len(data["day4"]))
+
+    print(len(data["day1constant"]))
+    print(len(data["day2constant"]))
+    print(len(data["day3constant"]))
+    print(len(data["day4constant"]))
+
+    for i in label:
+        print(i)

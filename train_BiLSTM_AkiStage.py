@@ -12,9 +12,9 @@ import shutil
 import sys
 
 from utils import get_precision_recall_f1, evaluate, set_random_seed
-from model import LSTM, LSTMFC, LSTMBaseline, LSTMFCBaseline, FCCommonBaseline, FCBaseline, LSTMDay5, LSTMDayX, \
-    LSTMDay5Constant, LSTMDayXConstant, LSTMDay5ConstantFC, LSTMDayXConstantFC, Day5Baseline, Day5ConstantBaseline, \
-    LSTMDay1ConstantFC, LSTMDay1Constant, LSTMDay1, LSTMDayXConstantFC
+from model import LSTM, LSTMFC, LSTMBaseline, LSTMFCBaseline, FCCommonBaseline, FCBaseline, BiLSTMDay5, BiLSTMDayX, \
+    BiLSTMDay5Constant, BiLSTMDayXConstant, BiLSTMDay5ConstantFC, BiLSTMDayXConstantFC, Day5Baseline, Day5ConstantBaseline, \
+    LSTMDay1ConstantFC, LSTMDay1Constant, LSTMDay1
 from dataset import MedicalData
 import argparse
 import os
@@ -73,12 +73,12 @@ if __name__ == "__main__":
     # parser.add_argument('--resume_checkpoint_path', '-c', type=str, default='./checkpoints/model_baseline_best.pth')
 
     parser.add_argument('--label_name', type=str, default='dic', help='[aki_stage, ards, dic, dead, liver_injury, shock]')
-    parser.add_argument('--model_type', type=str, default='LSTMDayXConstantFC',
+    parser.add_argument('--model_type', type=str, default='BiLSTMDay5ConstantFC',
                         help='[LSTM, LSTMFC, LSTMFCBaseline, LSTMBaseline, '
-                             'LSTMDayX, LSTMDayXConstant, '
-                             'LSTMDayXConstantFC, LSTMDay5, '
-                             'LSTMDay5Constant, LSTMDay5ConstantFC, LSTMDay1, '
-                             'LSTMDay1Constant, LSTMDay1ConstantFC, Day5Baseline, Day5ConstantBaseline, LSTMDayXConstantFC]')
+                             'BiLSTMDayX, BiLSTMDayXConstant, '
+                             'BiLSTMDayXConstantFC, BiLSTMDay5, '
+                             'BiLSTMDay5Constant, BiLSTMDay5ConstantFC, LSTMDay1, '
+                             'LSTMDay1Constant, LSTMDay1ConstantFC, Day5Baseline, Day5ConstantBaseline]')
     parser.add_argument('--hidden_size', type=int, default=256, help='[16, 32, 64, 128, 256, 512]')
     parser.add_argument('--layers', '-l', type=int, default=1, help='[1, 2, 3, 4]')
     parser.add_argument('--epochs', type=int, default=100, help='default: 100')
@@ -166,18 +166,18 @@ if __name__ == "__main__":
         model = FCCommonBaseline(layers, hidden_size, device, num_classes=num_classes)
     elif model_type == 'FCBaseline':
         model = FCBaseline(layers, hidden_size, device, num_classes=num_classes)
-    elif model_type == 'LSTMDay5':
-        model = LSTMDay5(layers, hidden_size, device, num_classes=num_classes)
-    elif model_type == 'LSTMDayX':
-        model = LSTMDayX(layers, hidden_size, device, num_classes=num_classes)
-    elif model_type == 'LSTMDay5Constant':
-        model = LSTMDay5Constant(layers, hidden_size, device, num_classes=num_classes)
-    elif model_type == 'LSTMDayXConstant':
-        model = LSTMDayXConstant(layers, hidden_size, device, num_classes=num_classes)
-    elif model_type == 'LSTMDay5ConstantFC':
-        model = LSTMDay5ConstantFC(layers, hidden_size, device, num_classes=num_classes)
-    elif model_type == 'LSTMDayXConstantFC':
-        model = LSTMDayXConstantFC(layers, hidden_size, device, num_classes=num_classes)
+    elif model_type == 'BiLSTMDay5':
+        model = BiLSTMDay5(layers, hidden_size, device, num_classes=num_classes)
+    elif model_type == 'BiLSTMDayX':
+        model = BiLSTMDayX(layers, hidden_size, device, num_classes=num_classes)
+    elif model_type == 'BiLSTMDay5Constant':
+        model = BiLSTMDay5Constant(layers, hidden_size, device, num_classes=num_classes)
+    elif model_type == 'BiLSTMDayXConstant':
+        model = BiLSTMDayXConstant(layers, hidden_size, device, num_classes=num_classes)
+    elif model_type == 'BiLSTMDay5ConstantFC':
+        model = BiLSTMDay5ConstantFC(layers, hidden_size, device, num_classes=num_classes)
+    elif model_type == 'BiLSTMDayXConstantFC':
+        model = BiLSTMDayXConstantFC(layers, hidden_size, device, num_classes=num_classes)
     elif model_type == 'Day5Baseline':
         model = Day5Baseline(layers, hidden_size, windows, device, num_classes=num_classes)
     elif model_type == 'Day5ConstantBaseline':
@@ -232,7 +232,7 @@ if __name__ == "__main__":
         for i, data in enumerate(train_dataloader):
             inputs, labels = data
 
-            if model_type == 'LSTMDayX' or model_type == 'LSTMDayXConstant' or model_type == 'LSTMDayXConstantFC':
+            if model_type == 'BiLSTMDayX' or model_type == 'BiLSTMDayXConstant' or model_type == 'BiLSTMDayXConstantFC':
                 if windows == 4 or label_name == 'dead':
                     label_list = [label[label_name] for label in labels]
                 else:
@@ -243,15 +243,15 @@ if __name__ == "__main__":
             common_list = []
             for t in inputs:
                 temp = []
-                if model_type == 'LSTMDayX' or model_type == 'LSTMDayXConstantFC' or model_type == 'LSTMDay1' or model_type == 'LSTMDay1ConstantFC':
+                if model_type == 'BiLSTMDayX' or model_type == 'BiLSTMDayXConstantFC' or model_type == 'LSTMDay1' or model_type == 'LSTMDay1ConstantFC':
                     for i in range(1, windows + 1):
                         temp.append(t["day{}".format(i)])
 
-                elif model_type == 'LSTMDay5' or model_type == 'LSTMDay5ConstantFC' or model_type == 'Day5Baseline':
+                elif model_type == 'BiLSTMDay5' or model_type == 'BiLSTMDay5ConstantFC' or model_type == 'Day5Baseline':
                     for i in range(5 - windows, 5):
                         temp.append(t["day{}".format(i)])
 
-                elif model_type == 'LSTMDayXConstant' or model_type == 'LSTMDay1Constant':
+                elif model_type == 'BiLSTMDayXConstant' or model_type == 'LSTMDay1Constant':
                     for i in range(1, windows + 1):
                         temp.append(t["day{}constant".format(i)])
                     # if windows == 1:
@@ -268,7 +268,7 @@ if __name__ == "__main__":
                     #     temp.append(t["day2constant"])
                     #     temp.append(t["day3constant"])
                     #     temp.append(t["day4constant"])
-                elif model_type == 'LSTMDay5Constant' or model_type == 'Day5ConstantBaseline':
+                elif model_type == 'BiLSTMDay5Constant' or model_type == 'Day5ConstantBaseline':
                     for i in range(5 - windows, 5):
                         temp.append(t["day{}constant".format(i)])
                     # if windows == 1:

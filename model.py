@@ -42,6 +42,8 @@ class LSTM(nn.Module):
 
         inputs = torch.tensor(inputs).to(self.device)
 
+        print('input_size:', inputs.shape)
+
         outputs, _ = self.lstm(inputs)  # B * S * H
         # B * H
         x = outputs[:, -1, :]  # torh.mean(1)
@@ -115,11 +117,11 @@ class LSTMFC(nn.Module):
         self.CE_loss = nn.CrossEntropyLoss()
 
         self.common_inputs = 63  # 常变量数目
-        self.common_hidden_size = int(self.hidden_size/4)
+        self.common_hidden_size = int(self.hidden_size / 4)
 
         self.common_linear = nn.Linear(in_features=self.common_inputs, out_features=self.common_hidden_size)
 
-        self.linear = nn.Linear(in_features=self.hidden_size+self.common_hidden_size, out_features=num_classes)
+        self.linear = nn.Linear(in_features=self.hidden_size + self.common_hidden_size, out_features=num_classes)
 
         self.dropout = nn.Dropout(p=0.5)  # dropout训练
 
@@ -330,6 +332,774 @@ class FCBaseline(nn.Module):
         outputs3 = self.linear3(outputs2)
 
         logits = self.linear4(outputs3)
+
+        if labels is not None:
+            loss = self.CE_loss(logits, labels)
+            return loss, logits
+        else:
+            return logits
+
+
+class LSTMDayX(nn.Module):
+    def __init__(self, layers, hidden_size, device, num_classes=None):
+        super(LSTMDayX, self).__init__()
+
+        self.device = device
+        self.num_classes = num_classes
+
+        self.hidden_size = hidden_size  # 调参 一开始为200
+        self.layers = layers
+
+        self.lstm = nn.LSTM(90, hidden_size=self.hidden_size, num_layers=self.layers, batch_first=True,
+                            bidirectional=False)  # num_layers
+        self.CE_loss = nn.CrossEntropyLoss()
+
+        self.linear = nn.Linear(in_features=self.hidden_size, out_features=num_classes)
+
+        # self.dropout = nn.Dropout(p=0.5)  # dropout训练
+
+        # B * 500 -》 B * H -》在H上拼接，做成 B * 2H -》 B* 2
+
+    def forward(self, inputs=None, labels=None):
+
+        # if <PAD> is fed into lstm encoder, it may be cause the error.
+
+        inputs = torch.tensor(inputs).to(self.device)
+
+        # print('input_size:',inputs.shape)
+
+        outputs, _ = self.lstm(inputs)  # B * S * H
+        # B * H
+        x = outputs[:, -1, :]  # torh.mean(1)
+        # x, _ = torch.max(outputs, 1)
+        # x = self.dropout(x)
+        logits = self.linear(x)  # dropout
+
+        if labels is not None:
+            loss = self.CE_loss(logits, labels)
+            return loss, logits
+        else:
+            return logits
+
+class LSTMDayXConstant(nn.Module):
+    def __init__(self, layers, hidden_size, device, num_classes=None):
+        super(LSTMDayXConstant, self).__init__()
+
+        self.device = device
+        self.num_classes = num_classes
+
+        self.hidden_size = hidden_size  # 调参 一开始为200
+        self.layers = layers
+
+        self.lstm = nn.LSTM(153, hidden_size=self.hidden_size, num_layers=self.layers, batch_first=True,
+                            bidirectional=False)  # num_layers
+        self.CE_loss = nn.CrossEntropyLoss()
+
+        self.linear = nn.Linear(in_features=self.hidden_size, out_features=num_classes)
+
+        # self.dropout = nn.Dropout(p=0.5)  # dropout训练
+
+        # B * 500 -》 B * H -》在H上拼接，做成 B * 2H -》 B* 2
+
+    def forward(self, inputs=None, labels=None):
+
+        # if <PAD> is fed into lstm encoder, it may be cause the error.
+
+        inputs = torch.tensor(inputs).to(self.device)
+
+        # print('input_size:',inputs.shape)
+
+        outputs, _ = self.lstm(inputs)  # B * S * H
+        # B * H
+        x = outputs[:, -1, :]  # torh.mean(1)
+        # x, _ = torch.max(outputs, 1)
+        # x = self.dropout(x)
+        logits = self.linear(x)  # dropout
+
+        if labels is not None:
+            loss = self.CE_loss(logits, labels)
+            return loss, logits
+        else:
+            return logits
+
+class LSTMDayXConstantFC(nn.Module):
+    def __init__(self, layers, hidden_size, device, num_classes=None):
+        super(LSTMDayXConstantFC, self).__init__()
+
+        self.device = device
+        self.num_classes = num_classes
+
+        self.hidden_size = hidden_size
+        self.layers = layers
+
+        self.lstm = nn.LSTM(90, hidden_size=self.hidden_size, num_layers=self.layers, batch_first=True,
+                            bidirectional=False)
+        self.CE_loss = nn.CrossEntropyLoss()
+
+        self.common_inputs = 63  # 常变量数目
+        self.common_hidden_size = int(self.hidden_size)
+
+        self.common_linear = nn.Linear(in_features=self.common_inputs, out_features=self.common_hidden_size)
+
+        self.linear = nn.Linear(in_features=self.hidden_size + self.common_hidden_size, out_features=num_classes)
+
+        self.dropout = nn.Dropout(p=0.5)  # dropout训练
+
+        # B * 500 -》 B * H -》在H上拼接，做成 B * 2H -》 B* 2
+
+    def forward(self, inputs=None, common_inputs=None, labels=None):
+
+        # if <PAD> is fed into lstm encoder, it may be cause the error.
+
+        inputs = torch.tensor(inputs).to(self.device)
+
+        outputs, _ = self.lstm(inputs)  # B * S * H
+
+        # B * H
+        x = outputs[:, -1, :]
+        # x, _ = torch.max(outputs, 1)
+
+        # x = self.dropout(x)
+        common_outputs = self.common_linear(common_inputs)
+
+        add_common_outputs = torch.cat((x, common_outputs), dim=1)  # 将时序变量和常变量拼接起来
+
+        logits = self.linear(add_common_outputs)
+
+        if labels is not None:
+            loss = self.CE_loss(logits, labels)
+            return loss, logits
+        else:
+            return logits
+
+class LSTMDay5(nn.Module):
+    def __init__(self, layers, hidden_size, device, num_classes=None):
+        super(LSTMDay5, self).__init__()
+
+        self.device = device
+        self.num_classes = num_classes
+
+        self.hidden_size = hidden_size  # 调参 一开始为200
+        self.layers = layers
+
+        self.lstm = nn.LSTM(90, hidden_size=self.hidden_size, num_layers=self.layers, batch_first=True,
+                            bidirectional=False)  # num_layers
+        self.CE_loss = nn.CrossEntropyLoss()
+
+        self.linear = nn.Linear(in_features=self.hidden_size, out_features=num_classes)
+
+        # self.dropout = nn.Dropout(p=0.5)  # dropout训练
+
+        # B * 500 -》 B * H -》在H上拼接，做成 B * 2H -》 B* 2
+
+    def forward(self, inputs=None, labels=None):
+
+        # if <PAD> is fed into lstm encoder, it may be cause the error.
+
+        inputs = torch.tensor(inputs).to(self.device)
+
+        # print('input_size:',inputs.shape)
+
+        outputs, _ = self.lstm(inputs)  # B * S * H
+        # B * H
+        x = outputs[:, -1, :]  # torh.mean(1)
+        # x, _ = torch.max(outputs, 1)
+        # x = self.dropout(x)
+        logits = self.linear(x)  # dropout
+
+        if labels is not None:
+            loss = self.CE_loss(logits, labels)
+            return loss, logits
+        else:
+            return logits
+
+class LSTMDay5Constant(nn.Module):
+    def __init__(self, layers, hidden_size, device, num_classes=None):
+        super(LSTMDay5Constant, self).__init__()
+
+        self.device = device
+        self.num_classes = num_classes
+
+        self.hidden_size = hidden_size  # 调参 一开始为200
+        self.layers = layers
+
+        self.lstm = nn.LSTM(153, hidden_size=self.hidden_size, num_layers=self.layers, batch_first=True,
+                            bidirectional=False)  # num_layers
+        self.CE_loss = nn.CrossEntropyLoss()
+
+        self.linear = nn.Linear(in_features=self.hidden_size, out_features=num_classes)
+
+        # self.dropout = nn.Dropout(p=0.5)  # dropout训练
+
+        # B * 500 -》 B * H -》在H上拼接，做成 B * 2H -》 B* 2
+
+    def forward(self, inputs=None, labels=None):
+
+        # if <PAD> is fed into lstm encoder, it may be cause the error.
+
+        inputs = torch.tensor(inputs).to(self.device)
+
+        # print('input_size:',inputs.shape)
+
+        outputs, _ = self.lstm(inputs)  # B * S * H
+        # B * H
+        x = outputs[:, -1, :]  # torh.mean(1)
+        # x, _ = torch.max(outputs, 1)
+        # x = self.dropout(x)
+        logits = self.linear(x)  # dropout
+
+        if labels is not None:
+            loss = self.CE_loss(logits, labels)
+            return loss, logits
+        else:
+            return logits
+
+class LSTMDay5ConstantFC(nn.Module):
+    def __init__(self, layers, hidden_size, device, num_classes=None):
+        super(LSTMDay5ConstantFC, self).__init__()
+
+        self.device = device
+        self.num_classes = num_classes
+
+        self.hidden_size = hidden_size
+        self.layers = layers
+
+        self.lstm = nn.LSTM(90, hidden_size=self.hidden_size, num_layers=self.layers, batch_first=True,
+                            bidirectional=False)
+        self.CE_loss = nn.CrossEntropyLoss()
+
+        self.common_inputs = 63  # 常变量数目
+        self.common_hidden_size = int(self.hidden_size)
+
+        self.common_linear = nn.Linear(in_features=self.common_inputs, out_features=self.common_hidden_size)
+
+        self.linear = nn.Linear(in_features=self.hidden_size + self.common_hidden_size, out_features=num_classes)
+
+        self.dropout = nn.Dropout(p=0.5)  # dropout训练
+
+        # B * 500 -》 B * H -》在H上拼接，做成 B * 2H -》 B* 2
+
+    def forward(self, inputs=None, common_inputs=None, labels=None):
+
+        # if <PAD> is fed into lstm encoder, it may be cause the error.
+
+        inputs = torch.tensor(inputs).to(self.device)
+
+        outputs, _ = self.lstm(inputs)  # B * S * H
+
+        # B * H
+        x = outputs[:, -1, :]
+        # x, _ = torch.max(outputs, 1)
+
+        # x = self.dropout(x)
+        common_outputs = self.common_linear(common_inputs)
+
+        add_common_outputs = torch.cat((x, common_outputs), dim=1)  # 将时序变量和常变量拼接起来
+
+        logits = self.linear(add_common_outputs)
+
+        if labels is not None:
+            loss = self.CE_loss(logits, labels)
+            return loss, logits
+        else:
+            return logits
+
+class Day5Baseline(nn.Module):
+    def __init__(self, layers, hidden_size, windows, device, num_classes=None):
+        super(Day5Baseline, self).__init__()
+
+        self.device = device
+        self.num_classes = num_classes
+
+        self.hidden_size = hidden_size
+        self.layers = layers
+        self.windows = windows
+        # self.lstm = nn.LSTM(360, hidden_size=self.hidden_size, num_layers=self.layers, batch_first=True,
+        #                     bidirectional=False)
+        self.CE_loss = nn.CrossEntropyLoss()
+
+        # self.linear = nn.Linear(in_features=self.hidden_size, out_features=num_classes)
+
+        self.linear1 = nn.Linear(in_features=90*windows, out_features=256)
+
+        self.linear2 = nn.Linear(in_features=256, out_features=num_classes)
+
+        self.dropout = nn.Dropout(p=0.5)  # dropout训练
+
+        # B * 500 -》 B * H -》在H上拼接，做成 B * 2H -》 B* 2
+
+    def forward(self, inputs=None, labels=None):
+
+        # if <PAD> is fed into lstm encoder, it may be cause the error.
+
+        inputs = torch.tensor(inputs).to(self.device)
+
+        inputs = inputs.view(inputs.size(0), 1, -1)
+
+        # outputs, _ = self.lstm(inputs)  # B * S * H
+        # B * H
+        x = inputs[:, -1, :]
+        # x, _ = torch.max(outputs, 1)
+        # x = self.dropout(x)
+
+        outputs1 = self.linear1(x)
+
+        logits = self.linear2(outputs1)
+
+        if labels is not None:
+            loss = self.CE_loss(logits, labels)
+            return loss, logits
+        else:
+            return logits
+
+class Day5ConstantBaseline(nn.Module):
+    def __init__(self, layers, hidden_size, windows, device, num_classes=None):
+        super(Day5ConstantBaseline, self).__init__()
+
+        self.device = device
+        self.num_classes = num_classes
+
+        self.hidden_size = hidden_size
+        self.layers = layers
+        self.windows = windows
+        # self.lstm = nn.LSTM(360, hidden_size=self.hidden_size, num_layers=self.layers, batch_first=True,
+        #                     bidirectional=False)
+        self.CE_loss = nn.CrossEntropyLoss()
+
+        # self.linear = nn.Linear(in_features=self.hidden_size, out_features=num_classes)
+
+        self.linear1 = nn.Linear(in_features=153*windows, out_features=16)
+
+        self.linear2 = nn.Linear(in_features=16, out_features=num_classes)
+
+        # self.linear1 = nn.Linear(in_features=153 * windows, out_features=512)
+        #
+        # self.linear2 = nn.Linear(in_features=512, out_features=512)
+        #
+        # self.linear3 = nn.Linear(in_features=512, out_features=512)
+        #
+        # self.linear4 = nn.Linear(in_features=512, out_features=512)
+        #
+        # self.linear5 = nn.Linear(in_features=512, out_features=num_classes)
+
+        self.dropout = nn.Dropout(p=0.5)  # dropout训练
+
+        # B * 500 -》 B * H -》在H上拼接，做成 B * 2H -》 B* 2
+
+    def forward(self, inputs=None, labels=None):
+
+        # if <PAD> is fed into lstm encoder, it may be cause the error.
+
+        inputs = torch.tensor(inputs).to(self.device)
+
+        inputs = inputs.view(inputs.size(0), 1, -1)
+
+        # outputs, _ = self.lstm(inputs)  # B * S * H
+        # B * H
+        x = inputs[:, -1, :]
+        # x, _ = torch.max(outputs, 1)
+        # x = self.dropout(x)
+
+        outputs1 = self.linear1(x)
+
+        logits = self.linear2(outputs1)
+
+
+        if labels is not None:
+            loss = self.CE_loss(logits, labels)
+            return loss, logits
+        else:
+            return logits
+
+class LSTMDay1(nn.Module):
+    def __init__(self, layers, hidden_size, device, num_classes=None):
+        super(LSTMDay1, self).__init__()
+
+        self.device = device
+        self.num_classes = num_classes
+
+        self.hidden_size = hidden_size  # 调参 一开始为200
+        self.layers = layers
+
+        self.lstm = nn.LSTM(90, hidden_size=self.hidden_size, num_layers=self.layers, batch_first=True,
+                            bidirectional=False)  # num_layers
+        self.CE_loss = nn.CrossEntropyLoss()
+
+        self.linear = nn.Linear(in_features=self.hidden_size, out_features=num_classes)
+
+        # self.dropout = nn.Dropout(p=0.5)  # dropout训练
+
+        # B * 500 -》 B * H -》在H上拼接，做成 B * 2H -》 B* 2
+
+    def forward(self, inputs=None, labels=None):
+
+        # if <PAD> is fed into lstm encoder, it may be cause the error.
+
+        inputs = torch.tensor(inputs).to(self.device)
+
+        # print('input_size:',inputs.shape)
+
+        outputs, _ = self.lstm(inputs)  # B * S * H
+        # B * H
+        x = outputs[:, -1, :]  # torh.mean(1)
+        # x, _ = torch.max(outputs, 1)
+        # x = self.dropout(x)
+        logits = self.linear(x)  # dropout
+
+        if labels is not None:
+            loss = self.CE_loss(logits, labels)
+            return loss, logits
+        else:
+            return logits
+
+class LSTMDay1Constant(nn.Module):
+    def __init__(self, layers, hidden_size, device, num_classes=None):
+        super(LSTMDay1Constant, self).__init__()
+
+        self.device = device
+        self.num_classes = num_classes
+
+        self.hidden_size = hidden_size  # 调参 一开始为200
+        self.layers = layers
+
+        self.lstm = nn.LSTM(153, hidden_size=self.hidden_size, num_layers=self.layers, batch_first=True,
+                            bidirectional=False)  # num_layers
+        self.CE_loss = nn.CrossEntropyLoss()
+
+        self.linear = nn.Linear(in_features=self.hidden_size, out_features=num_classes)
+
+        # self.dropout = nn.Dropout(p=0.5)  # dropout训练
+
+        # B * 500 -》 B * H -》在H上拼接，做成 B * 2H -》 B* 2
+
+    def forward(self, inputs=None, labels=None):
+
+        # if <PAD> is fed into lstm encoder, it may be cause the error.
+
+        inputs = torch.tensor(inputs).to(self.device)
+
+        # print('input_size:',inputs.shape)
+
+        outputs, _ = self.lstm(inputs)  # B * S * H
+        # B * H
+        x = outputs[:, -1, :]  # torh.mean(1)
+        # x, _ = torch.max(outputs, 1)
+        # x = self.dropout(x)
+        logits = self.linear(x)  # dropout
+
+        if labels is not None:
+            loss = self.CE_loss(logits, labels)
+            return loss, logits
+        else:
+            return logits
+
+class LSTMDay1ConstantFC(nn.Module):
+    def __init__(self, layers, hidden_size, device, num_classes=None):
+        super(LSTMDay1ConstantFC, self).__init__()
+
+        self.device = device
+        self.num_classes = num_classes
+
+        self.hidden_size = hidden_size
+        self.layers = layers
+
+        self.lstm = nn.LSTM(90, hidden_size=self.hidden_size, num_layers=self.layers, batch_first=True,
+                            bidirectional=False)
+        self.CE_loss = nn.CrossEntropyLoss()
+
+        self.common_inputs = 63  # 常变量数目
+        self.common_hidden_size = int(self.hidden_size)
+
+        self.common_linear = nn.Linear(in_features=self.common_inputs, out_features=self.common_hidden_size)
+
+        self.linear = nn.Linear(in_features=self.hidden_size + self.common_hidden_size, out_features=num_classes)
+
+        self.dropout = nn.Dropout(p=0.5)  # dropout训练
+
+        # B * 500 -》 B * H -》在H上拼接，做成 B * 2H -》 B* 2
+
+    def forward(self, inputs=None, common_inputs=None, labels=None):
+
+        # if <PAD> is fed into lstm encoder, it may be cause the error.
+
+        inputs = torch.tensor(inputs).to(self.device)
+
+        outputs, _ = self.lstm(inputs)  # B * S * H
+
+        # B * H
+        x = outputs[:, -1, :]
+        # x, _ = torch.max(outputs, 1)
+
+        # x = self.dropout(x)
+        common_outputs = self.common_linear(common_inputs)
+
+        add_common_outputs = torch.cat((x, common_outputs), dim=1)  # 将时序变量和常变量拼接起来
+
+        logits = self.linear(add_common_outputs)
+
+        if labels is not None:
+            loss = self.CE_loss(logits, labels)
+            return loss, logits
+        else:
+            return logits
+
+class BiLSTMDayX(nn.Module):
+    def __init__(self, layers, hidden_size, device, num_classes=None):
+        super(BiLSTMDayX, self).__init__()
+
+        self.device = device
+        self.num_classes = num_classes
+
+        self.hidden_size = hidden_size  # 调参 一开始为200
+        self.layers = layers
+
+        self.lstm = nn.LSTM(90, hidden_size=self.hidden_size, num_layers=self.layers, batch_first=True,
+                            bidirectional=True)  # num_layers
+        self.CE_loss = nn.CrossEntropyLoss()
+
+        self.linear = nn.Linear(in_features=self.hidden_size*2, out_features=num_classes)
+
+        # self.dropout = nn.Dropout(p=0.5)  # dropout训练
+
+        # B * 500 -》 B * H -》在H上拼接，做成 B * 2H -》 B* 2
+
+    def forward(self, inputs=None, labels=None):
+
+        # if <PAD> is fed into lstm encoder, it may be cause the error.
+
+        inputs = torch.tensor(inputs).to(self.device)
+
+        # print('input_size:',inputs.shape)
+
+        outputs, _ = self.lstm(inputs)  # B * S * H
+        # B * H
+        x = outputs[:, -1, :]  # torh.mean(1)
+        # x, _ = torch.max(outputs, 1)
+        # x = self.dropout(x)
+        logits = self.linear(x)  # dropout
+
+        if labels is not None:
+            loss = self.CE_loss(logits, labels)
+            return loss, logits
+        else:
+            return logits
+
+class BiLSTMDayXConstant(nn.Module):
+    def __init__(self, layers, hidden_size, device, num_classes=None):
+        super(BiLSTMDayXConstant, self).__init__()
+
+        self.device = device
+        self.num_classes = num_classes
+
+        self.hidden_size = hidden_size  # 调参 一开始为200
+        self.layers = layers
+
+        self.lstm = nn.LSTM(153, hidden_size=self.hidden_size, num_layers=self.layers, batch_first=True,
+                            bidirectional=True)  # num_layers
+        self.CE_loss = nn.CrossEntropyLoss()
+
+        self.linear = nn.Linear(in_features=self.hidden_size*2, out_features=num_classes)
+
+        # self.dropout = nn.Dropout(p=0.5)  # dropout训练
+
+        # B * 500 -》 B * H -》在H上拼接，做成 B * 2H -》 B* 2
+
+    def forward(self, inputs=None, labels=None):
+
+        # if <PAD> is fed into lstm encoder, it may be cause the error.
+
+        inputs = torch.tensor(inputs).to(self.device)
+
+        # print('input_size:',inputs.shape)
+
+        outputs, _ = self.lstm(inputs)  # B * S * H
+        # B * H
+        x = outputs[:, -1, :]  # torh.mean(1)
+        # x, _ = torch.max(outputs, 1)
+        # x = self.dropout(x)
+        logits = self.linear(x)  # dropout
+
+        if labels is not None:
+            loss = self.CE_loss(logits, labels)
+            return loss, logits
+        else:
+            return logits
+
+class BiLSTMDayXConstantFC(nn.Module):
+    def __init__(self, layers, hidden_size, device, num_classes=None):
+        super(BiLSTMDayXConstantFC, self).__init__()
+
+        self.device = device
+        self.num_classes = num_classes
+
+        self.hidden_size = hidden_size
+        self.layers = layers
+
+        self.lstm = nn.LSTM(90, hidden_size=self.hidden_size, num_layers=self.layers, batch_first=True,
+                            bidirectional=True)
+        self.CE_loss = nn.CrossEntropyLoss()
+
+        self.common_inputs = 63  # 常变量数目
+        self.common_hidden_size = int(self.hidden_size)
+
+        self.common_linear = nn.Linear(in_features=self.common_inputs, out_features=self.common_hidden_size*2)
+
+        self.linear = nn.Linear(in_features=(self.hidden_size + self.common_hidden_size)*2, out_features=num_classes)
+
+        self.dropout = nn.Dropout(p=0.5)  # dropout训练
+
+        # B * 500 -》 B * H -》在H上拼接，做成 B * 2H -》 B* 2
+
+    def forward(self, inputs=None, common_inputs=None, labels=None):
+
+        # if <PAD> is fed into lstm encoder, it may be cause the error.
+
+        inputs = torch.tensor(inputs).to(self.device)
+
+        outputs, _ = self.lstm(inputs)  # B * S * H
+
+        # B * H
+        x = outputs[:, -1, :]
+        # x, _ = torch.max(outputs, 1)
+
+        # x = self.dropout(x)
+        common_outputs = self.common_linear(common_inputs)
+
+        add_common_outputs = torch.cat((x, common_outputs), dim=1)  # 将时序变量和常变量拼接起来
+
+        logits = self.linear(add_common_outputs)
+
+        if labels is not None:
+            loss = self.CE_loss(logits, labels)
+            return loss, logits
+        else:
+            return logits
+
+class BiLSTMDay5(nn.Module):
+    def __init__(self, layers, hidden_size, device, num_classes=None):
+        super(BiLSTMDay5, self).__init__()
+
+        self.device = device
+        self.num_classes = num_classes
+
+        self.hidden_size = hidden_size  # 调参 一开始为200
+        self.layers = layers
+
+        self.lstm = nn.LSTM(90, hidden_size=self.hidden_size, num_layers=self.layers, batch_first=True,
+                            bidirectional=True)  # num_layers
+        self.CE_loss = nn.CrossEntropyLoss()
+
+        self.linear = nn.Linear(in_features=self.hidden_size*2, out_features=num_classes)
+
+        # self.dropout = nn.Dropout(p=0.5)  # dropout训练
+
+        # B * 500 -》 B * H -》在H上拼接，做成 B * 2H -》 B* 2
+
+    def forward(self, inputs=None, labels=None):
+
+        # if <PAD> is fed into lstm encoder, it may be cause the error.
+
+        inputs = torch.tensor(inputs).to(self.device)
+
+        # print('input_size:',inputs.shape)
+
+        outputs, _ = self.lstm(inputs)  # B * S * H
+        # B * H
+        x = outputs[:, -1, :]  # torh.mean(1)
+        # x, _ = torch.max(outputs, 1)
+        # x = self.dropout(x)
+        logits = self.linear(x)  # dropout
+
+        if labels is not None:
+            loss = self.CE_loss(logits, labels)
+            return loss, logits
+        else:
+            return logits
+
+class BiLSTMDay5Constant(nn.Module):
+    def __init__(self, layers, hidden_size, device, num_classes=None):
+        super(BiLSTMDay5Constant, self).__init__()
+
+        self.device = device
+        self.num_classes = num_classes
+
+        self.hidden_size = hidden_size  # 调参 一开始为200
+        self.layers = layers
+
+        self.lstm = nn.LSTM(153, hidden_size=self.hidden_size, num_layers=self.layers, batch_first=True,
+                            bidirectional=True)  # num_layers
+        self.CE_loss = nn.CrossEntropyLoss()
+
+        self.linear = nn.Linear(in_features=self.hidden_size*2, out_features=num_classes)
+
+        # self.dropout = nn.Dropout(p=0.5)  # dropout训练
+
+        # B * 500 -》 B * H -》在H上拼接，做成 B * 2H -》 B* 2
+
+    def forward(self, inputs=None, labels=None):
+
+        # if <PAD> is fed into lstm encoder, it may be cause the error.
+
+        inputs = torch.tensor(inputs).to(self.device)
+
+        # print('input_size:',inputs.shape)
+
+        outputs, _ = self.lstm(inputs)  # B * S * H
+        # B * H
+        x = outputs[:, -1, :]  # torh.mean(1)
+        # x, _ = torch.max(outputs, 1)
+        # x = self.dropout(x)
+        logits = self.linear(x)  # dropout
+
+        if labels is not None:
+            loss = self.CE_loss(logits, labels)
+            return loss, logits
+        else:
+            return logits
+
+class BiLSTMDay5ConstantFC(nn.Module):
+    def __init__(self, layers, hidden_size, device, num_classes=None):
+        super(BiLSTMDay5ConstantFC, self).__init__()
+
+        self.device = device
+        self.num_classes = num_classes
+
+        self.hidden_size = hidden_size
+        self.layers = layers
+
+        self.lstm = nn.LSTM(90, hidden_size=self.hidden_size, num_layers=self.layers, batch_first=True,
+                            bidirectional=True)
+        self.CE_loss = nn.CrossEntropyLoss()
+
+        self.common_inputs = 63  # 常变量数目
+        self.common_hidden_size = int(self.hidden_size)
+
+        self.common_linear = nn.Linear(in_features=self.common_inputs, out_features=self.common_hidden_size*2)
+
+        self.linear = nn.Linear(in_features=(self.hidden_size + self.common_hidden_size)*2, out_features=num_classes)
+
+        self.dropout = nn.Dropout(p=0.5)  # dropout训练
+
+        # B * 500 -》 B * H -》在H上拼接，做成 B * 2H -》 B* 2
+
+    def forward(self, inputs=None, common_inputs=None, labels=None):
+
+        # if <PAD> is fed into lstm encoder, it may be cause the error.
+
+        inputs = torch.tensor(inputs).to(self.device)
+
+        outputs, _ = self.lstm(inputs)  # B * S * H
+
+        # B * H
+        x = outputs[:, -1, :]
+        # x, _ = torch.max(outputs, 1)
+
+        # x = self.dropout(x)
+        common_outputs = self.common_linear(common_inputs)
+
+        add_common_outputs = torch.cat((x, common_outputs), dim=1)  # 将时序变量和常变量拼接起来
+
+        logits = self.linear(add_common_outputs)
 
         if labels is not None:
             loss = self.CE_loss(logits, labels)
